@@ -1,0 +1,447 @@
+<title>Revenue Forecaster - Pingtree Financiero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: cabecera fija con título, brief del cliente arriba, franja de KPIs, tabla del pingtree y rejilla de analítica.
+   Dirección: oscuro, DM Sans / DM Mono, azul de acento, verde-ámbar-rojo para estados). */
+:root{
+  --bg:#0f1117; --bg2:#161b25; --bg3:#1d2433; --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.13);
+  --text:#e8eaf0; --text2:#8b92a8; --text3:#6d7692; --accent:#4f8ef7; --accent2:#3a6fd4; --accent-soft:rgba(79,142,247,.12);
+  --green:#2ecc8a; --green-bg:rgba(46,204,138,.1); --amber:#f5a623; --amber-bg:rgba(245,166,35,.1); --red:#f75959; --red-bg:rgba(247,89,89,.1);
+  --grid:rgba(255,255,255,.07);
+  --c1:#4f8ef7; --c2:#2ecc8a; --c3:#f5a623; --c4:#a78bfa; --c5:#2dd4bf; --c6:#f472b6; --c7:#f75959; --c8:#8b92a8;
+  --f-sans:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --f-mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f2f4f8; --bg2:#ffffff; --bg3:#eceff6; --border:rgba(20,30,60,.09); --border2:rgba(20,30,60,.17);
+    --text:#161b2a; --text2:#566079; --text3:#6d7690; --accent:#2f6fe0; --accent2:#2a5fc4; --accent-soft:rgba(47,111,224,.1);
+    --green:#12905a; --green-bg:rgba(18,144,90,.09); --amber:#a8670a; --amber-bg:rgba(168,103,10,.1); --red:#c8372f; --red-bg:rgba(200,55,47,.09);
+    --grid:rgba(20,30,60,.08);
+    --c1:#2f6fe0; --c2:#12905a; --c3:#c47d0c; --c4:#7c5ce0; --c5:#0f9e8f; --c6:#d4467f; --c7:#c8372f; --c8:#6d7690; color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f2f4f8; --bg2:#ffffff; --bg3:#eceff6; --border:rgba(20,30,60,.09); --border2:rgba(20,30,60,.17);
+  --text:#161b2a; --text2:#566079; --text3:#6d7690; --accent:#2f6fe0; --accent2:#2a5fc4; --accent-soft:rgba(47,111,224,.1);
+  --green:#12905a; --green-bg:rgba(18,144,90,.09); --amber:#a8670a; --amber-bg:rgba(168,103,10,.1); --red:#c8372f; --red-bg:rgba(200,55,47,.09);
+  --grid:rgba(20,30,60,.08);
+  --c1:#2f6fe0; --c2:#12905a; --c3:#c47d0c; --c4:#7c5ce0; --c5:#0f9e8f; --c6:#d4467f; --c7:#c8372f; --c8:#6d7690; color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--f-sans);font-size:14px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--bg2)}
+h1,h2,h3,h4,p{margin:0}
+.wrap{max-width:1400px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:env(safe-area-inset-top,0px);z-index:15}
+.top .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between;padding-block:14px}
+.top h1{font-size:18px;font-weight:600;letter-spacing:-.3px}
+.top p{font-size:12px;color:var(--text2);margin-top:2px}
+.anchors{display:flex;gap:4px;overflow-x:auto}
+.anchors a{color:var(--text2);text-decoration:none;font-size:13px;font-weight:500;padding:6px 11px;border-radius:6px;white-space:nowrap}
+.anchors a:hover{background:var(--bg3);color:var(--text)}
+main .wrap{padding-block:22px 60px;display:flex;flex-direction:column;gap:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;min-width:0}
+.card h3{font-size:14px;font-weight:600;margin-bottom:3px}
+.card .hint{font-size:12px;color:var(--text2);margin-bottom:12px;max-width:80ch}
+.sec-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-bottom:-8px}
+.brief{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px 20px;align-items:end}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.f>label,.lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=number],select{font:500 13px var(--f-sans);color:var(--text);background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=range]{accent-color:var(--accent);width:100%;min-width:0}
+.rng{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.rng output{font:500 12px var(--f-mono);color:var(--accent)}
+.rng input{grid-column:1/-1}
+.seg{display:inline-flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;width:100%}
+.seg button{flex:1;appearance:none;background:var(--bg3);border:0;border-right:1px solid var(--border);color:var(--text2);font:500 12.5px var(--f-sans);padding:8px 6px;cursor:pointer;white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent2);color:#fff}
+.note{font-size:12px;color:var(--text2)}
+.assump{margin-top:14px;padding:10px 12px;border:1px dashed var(--border2);border-radius:8px;background:var(--amber-bg);color:var(--text);font-size:12.5px}
+.assump b{color:var(--amber)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;min-width:0}
+.scard .l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.scard .v{font:600 22px var(--f-mono);letter-spacing:-.5px;overflow-wrap:anywhere}
+.scard .s{font-size:11.5px;color:var(--text3);margin-top:3px}
+.scard.main{border-color:var(--accent2);background:linear-gradient(0deg,var(--accent-soft),var(--accent-soft)),var(--bg2)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.btn{font:500 12.5px var(--f-sans);padding:7px 13px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 8px;cursor:pointer;color:var(--text2)}
+.chip:hover{color:var(--text);border-color:var(--red)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;font-weight:500;text-align:right;padding:6px 10px;white-space:nowrap;border-bottom:1px solid var(--border2)}
+td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:right;font:500 12.5px var(--f-mono);white-space:nowrap;vertical-align:middle}
+th.tl,td.tl{text-align:left}
+td.name{font:600 13px var(--f-sans);white-space:normal;min-width:170px}
+td .sub{display:block;font:400 11px var(--f-sans);color:var(--text3)}
+tr.row:hover td{background:var(--bg3)}
+tr.dim td{opacity:.45}
+.good{color:var(--green)} .mid{color:var(--amber)} .bad{color:var(--red)}
+.pos{display:inline-block;min-width:26px;text-align:center;font:500 11px var(--f-mono);background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:1px 6px}
+.tag{font-size:10px;font-family:var(--f-sans);color:var(--amber);background:var(--amber-bg);border:1px solid rgba(245,166,35,.25);border-radius:3px;padding:0 5px;margin-left:5px;white-space:nowrap}
+.bar{display:block;height:6px;background:var(--bg3);border-radius:3px;min-width:80px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.edit{width:68px;font:500 12px var(--f-mono);color:var(--accent);background:var(--bg3);border:1px dashed var(--border2);border-radius:4px;padding:4px 6px;text-align:right}
+.edit:focus{border-style:solid}
+.x{background:none;border:0;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px}
+.x:hover{color:var(--red)}
+.xp{background:none;border:0;color:var(--accent);cursor:pointer;font:500 11px var(--f-sans);padding:0}
+tr.detail td{padding:0;background:var(--bg);white-space:normal}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;padding:14px 14px 14px 48px}
+.mb{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+.mb h4{font-size:10.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.mb.avg{background:var(--bg3);border-color:var(--border2)} .mb.avg h4{color:var(--accent)}
+.mr{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--border);font-size:11.5px;color:var(--text2)}
+.mr:last-child{border-bottom:0} .mr b{font:500 12px var(--f-mono);color:var(--text)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:16px}
+.cbox{position:relative;height:300px;min-width:0}
+.cbox.tall{height:420px}
+.kv{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:12.5px;color:var(--text2);margin-top:10px}
+.kv b{font:500 12.5px var(--f-mono);color:var(--text)}
+.insight{margin-top:10px;font-size:12.5px;color:var(--text2);border-left:2px solid var(--accent2);padding-left:10px}
+.legend-note{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text2);margin-bottom:8px}
+.foot{font-size:12px;color:var(--text3);max-width:100ch}
+@media (max-width:640px){ .dgrid{padding-left:14px} .scard .v{font-size:19px} }
+</style>
+
+<header class="top"><div class="wrap">
+  <div><h1>Revenue Forecaster - Pingtree Financiero</h1><p>Previsión de revenue para los leads de un cliente · partners activos en 2026 ordenados por EPL</p></div>
+  <nav class="anchors" aria-label="Secciones"><a href="#brief">Brief</a><a href="#kpis">Previsión</a><a href="#pingtree">Pingtree</a><a href="#analytics">Analítica</a><a href="#scenarios">Escenarios</a><a href="#notes">Método</a></nav>
+</div></header>
+
+<main><div class="wrap">
+
+<section class="card" id="brief">
+  <h3>Brief del cliente</h3>
+  <p class="hint">Cuenta qué leads tiene y cuántos. El pingtree se arma con los partners que facturaron en 2026, ordenados por EPL de mayor a menor. Las cifras de referencia son la media de todo 2026.</p>
+  <div class="brief">
+    <div class="f"><label for="f-company">Empresa</label><input id="f-company" type="text" placeholder="Nombre de la empresa financiera"></div>
+    <div class="f"><label for="f-type">Tipo de leads</label><select id="f-type"></select></div>
+    <div class="f"><label for="f-leads">Leads por mes</label><input id="f-leads" type="number" min="100" step="1000" value="100000"></div>
+    <div class="f"><label for="f-n">Ofertas en el pingtree</label><div class="rng"><span></span><output id="o-n">20</output><input id="f-n" type="range" min="5" max="30" step="1" value="20"></div></div>
+    <div class="f"><label for="f-min">Muestra mínima por partner</label><select id="f-min"><option value="0">Sin mínimo</option><option value="50" selected>≥ 50 aceptados</option><option value="200">≥ 200 aceptados</option><option value="1000">≥ 1.000 aceptados</option></select></div>
+    <div class="f"><label for="f-ka">Ajuste de aceptación</label><div class="rng"><span></span><output id="o-ka">×1,00</output><input id="f-ka" type="range" min="0.3" max="1.6" step="0.05" value="1"></div></div>
+    <div class="f"><label for="f-ke">Ajuste de EPL</label><div class="rng"><span></span><output id="o-ke">×1,00</output><input id="f-ke" type="range" min="0.4" max="1.4" step="0.05" value="1"></div></div>
+    <div class="f"><label for="f-reach">Alcance de los partners</label><select id="f-reach"><option value="0" selected>Todos los leads (techo teórico)</option><option value="1">Alcance real observado (calibrado)</option></select></div>
+    <div class="f"><label for="f-pen">Penalización por posición</label><div class="rng"><span></span><output id="o-pen">0 %</output><input id="f-pen" type="range" min="0" max="50" step="5" value="0"></div></div>
+  </div>
+  <div class="assump" id="type-note"></div>
+</section>
+
+<div id="kpis" class="strip" aria-live="polite"></div>
+
+<section id="pingtree" class="card">
+  <div class="toolbar">
+    <div><h3 id="pt-title">Pingtree</h3><p class="hint" style="margin:0">Cada lead entra por el primer partner. Si lo acepta, se vende; si no, pasa al siguiente. Edita EPL o aceptación de un partner para simular un cambio de condiciones.</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="b-reset">Quitar ediciones</button><button class="btn" id="b-copy">Copiar resumen</button></div>
+  </div>
+  <div class="chips" id="excl" style="margin-bottom:10px"></div>
+  <div class="scroll"><table id="pt-table"></table></div>
+</section>
+
+<div class="sec-title" id="analytics">Analítica de performance</div>
+<div class="grid2">
+  <div class="card"><h3>Flujo de leads por partner</h3><p class="hint">Barras: leads aceptados por cada partner. Línea: leads que quedan sin colocar tras pasar por él.</p><div class="cbox"><canvas id="chFlow"></canvas></div><div class="insight" id="in-flow"></div></div>
+  <div class="card"><h3>Revenue por partner</h3><p class="hint">Revenue previsto de cada oferta del pingtree en el mes.</p><div class="cbox" id="revbox"><canvas id="chRev"></canvas></div></div>
+  <div class="card"><h3>Curva acumulada de revenue</h3><p class="hint">Qué porcentaje del revenue total se alcanza al llegar a cada posición.</p><div class="cbox"><canvas id="chCum"></canvas></div><div class="insight" id="in-cum"></div></div>
+  <div class="card"><h3>Distribución del revenue</h3><p class="hint">Peso de cada partner en el total y concentración de la cartera.</p><div class="cbox"><canvas id="chShare"></canvas></div><div class="kv" id="kv-share"></div></div>
+  <div class="card"><h3>EPL frente a aceptación</h3><p class="hint">Cada burbuja es un partner; el tamaño es su revenue previsto. Arriba a la derecha están los que pagan más y aceptan más.</p><div class="cbox"><canvas id="chBub"></canvas></div></div>
+  <div class="card"><h3>Rendimientos decrecientes</h3><p class="hint">Revenue total según cuántas ofertas tiene el pingtree. Las barras marcan lo que aporta cada oferta nueva.</p><div class="cbox"><canvas id="chMarg"></canvas></div><div class="insight" id="in-marg"></div></div>
+  <div class="card"><h3>Sensibilidad del revenue</h3><p class="hint">Cambio porcentual del revenue previsto si cambia una hipótesis.</p><div class="cbox"><canvas id="chSens"></canvas></div></div>
+  <div class="card"><h3>Importancia del orden</h3><p class="hint">Mismo pingtree, distinto criterio de ordenación. Ordenar por EPL descendente es el óptimo cuando pingar no cuesta y la aceptación es independiente.</p><div class="cbox"><canvas id="chOrd"></canvas></div><div class="insight" id="in-ord"></div></div>
+  <div class="card"><h3>Rango de resultados (Monte Carlo)</h3><p class="hint">2.000 simulaciones con la variación mensual real de EPL y aceptación de cada partner (últimos 6 meses).</p><div class="cbox"><canvas id="chMC"></canvas></div><div class="kv" id="kv-mc"></div></div>
+  <div class="card"><h3>Evolución del EPL de los 5 primeros</h3><p class="hint">EPL mensual desde enero de 2025. Muestra si el partner es estable o depende de un buen mes.</p><div class="cbox"><canvas id="chTrend"></canvas></div></div>
+</div>
+
+<section class="card" id="scenarios">
+  <h3>Escenarios por tipo de lead</h3>
+  <p class="hint">Mismo volumen y mismo pingtree con cada perfil de lead. Los ajustes de calidad son hipótesis editables arriba, no salen de los datos.</p>
+  <div class="grid2" style="align-items:start"><div class="cbox"><canvas id="chTypes"></canvas></div><div class="scroll"><table id="sc-table"></table></div></div>
+</section>
+
+<section class="card" id="notes">
+  <h3>Método y límites</h3>
+  <div class="kv" style="display:block;line-height:1.7">
+    <p><b>Fuentes:</b> fuentes anonimizadas de datos. Referencia: media acumulada de __AGG_MONTHS__ (acierto y EPL); la volatilidad del Monte Carlo se estima con los meses desde __VOL_FROM__. Ambos parámetros viven en <code>data/params.json</code>.</p>
+    <p><b>Definiciones:</b> Acc % = aceptados ÷ requests. EPL = revenue ÷ aceptados. CR = ventas ÷ aceptados. Los lenders sin ventas registradas (cobro por lead aceptado) muestran ventas «n/d».</p>
+    <p><b>Flujo:</b> leads que entran en el partner i = leads que no aceptó ningún partner anterior. Aceptados = entran × aceptación. Revenue = aceptados × EPL.</p>
+    <p><b>Techo y alcance:</b> por defecto cada partner recibe todos los leads que quedan sin colocar, lo que da un <i>techo teórico</i>. Con «Alcance real observado» cada partner solo recibe la fracción de leads por la que se le consulta (requests ÷ volumen de leads), y el resultado cuadra con el revenue real (ver backtest en el README y el paper).</p>
+    <p><b>Límite principal:</b> la aceptación histórica de cada partner se midió en su posición real. En un pingtree nuevo, los de abajo pueden ver leads distintos; usa la penalización por posición para probarlo.</p>
+    <p><b>Muestra:</b> los partners con pocos aceptados llevan la etiqueta «muestra pequeña»: su EPL puede ser ruido.</p>
+    <p><b>Es una previsión:</b> no garantiza resultados. Los ajustes por tipo de lead son supuestos del modelo.</p>
+  </div>
+  <p class="foot" style="margin-top:12px">Los EPL y la aceptación de cada lender son datos comerciales sensibles: si vas a enseñar esta página a un cliente, anonimiza los nombres antes.</p>
+</section>
+
+</div></main>
+
+<script>
+const D = __DATA__;
+const PARAMS = __PARAMS__;
+
+/* ------------------------------------------------ formato */
+const nfx = d => { try { return new Intl.NumberFormat('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d,useGrouping:'always'}); } catch(e){ return new Intl.NumberFormat('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}); } };
+const N0=nfx(0), N1=nfx(1), N2=nfx(2), N3=nfx(3);
+const int = v => N0.format(Math.round(v));
+const eur = v => N0.format(Math.round(v)) + ' €';
+const eur2 = v => N2.format(v) + ' €';
+const pct1 = v => N1.format(v*100) + ' %';
+const pct2 = v => N2.format(v*100) + ' %';
+const MN = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const mlabel = m => MN[+m.slice(5,7)-1] + ' ' + m.slice(2,4);
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const short = (s, n=16) => s.length > n ? s.slice(0, n-1) + '…' : s;
+
+/*CALC*/
+function aggPartner(p, months){ let R=0,A=0,S=0,V=0; for(const m of months){ const x=p.m[m]; if(x){ R+=x[0]; A+=x[1]; S+=x[2]; V+=x[3]; } } return {R,A,S,V}; }
+function monthlyCV(p, from){
+  const acc=[], epl=[];
+  for(const m of Object.keys(p.m)){ if(m<from) continue; const x=p.m[m]; if(x[0]>0&&x[1]>0&&x[3]>0){ acc.push(x[1]/x[0]); epl.push(x[3]/x[1]); } }
+  const MCP = PARAMS.monte_carlo;
+  const cv = a => { if(a.length<2) return MCP.cv_default; const mu=a.reduce((s,v)=>s+v,0)/a.length; const sd=Math.sqrt(a.reduce((s,v)=>s+(v-mu)*(v-mu),0)/(a.length-1)); return Math.min(MCP.cv_cap,Math.max(MCP.cv_floor,sd/mu)); };
+  return {cvA:cv(acc), cvE:cv(epl)};
+}
+function nRef(partners, months){ let t=0; for(const m of months){ let mx=0; for(const p of partners){ const x=p.m[m]; if(x&&x[0]>mx) mx=x[0]; } t+=mx; } return t; }
+function buildPool(partners, cfg){
+  const pool=[]; const NREF=nRef(partners,cfg.months);
+  for(const p of partners){
+    const g=aggPartner(p,cfg.months);
+    if(g.V<=0||g.A<cfg.minAcc||g.R<=0||cfg.excl.has(p.name)) continue;
+    const o=cfg.ovr[p.name]||{};
+    const accH=g.A/g.R, eplH=g.V/g.A, soldPerAcc=g.A?Math.min(1,g.S/g.A):0, hasSold=g.S>0;
+    const acc=o.acc!=null?o.acc:Math.min(1,accH*cfg.kA);
+    const epl=o.epl!=null?o.epl:eplH*cfg.kE;
+    const cv=monthlyCV(p,PARAMS.volatility_from);
+    pool.push({name:p.name,q:NREF?Math.min(1,g.R/NREF):1,R:g.R,A:g.A,S:g.S,V:g.V,accH,eplH,soldPerAcc,hasSold,acc,epl,hasOvr:o.acc!=null||o.epl!=null,cvA:cv.cvA,cvE:cv.cvE,m:p.m});
+  }
+  return pool;
+}
+function runFlow(pool, leads, pen, accMul=1, eplMul=1, reach=false){
+  let rem=leads; const rows=[]; const n=pool.length;
+  pool.forEach((p,i)=>{
+    const f=n>1?1-pen*(i/(n-1)):1;
+    const acc=Math.max(0,Math.min(1,p.acc*f*accMul*(reach?p.q:1)));
+    const inn=rem, accepted=inn*acc, rev=accepted*p.epl*eplMul, sold=accepted*p.soldPerAcc;
+    rem=inn-accepted;
+    rows.push({...p,pos:i+1,accEff:acc,eplEff:p.epl*eplMul,in:inn,accepted,rev,sold,rem});
+  });
+  const rev=rows.reduce((s,r)=>s+r.rev,0), accepted=rows.reduce((s,r)=>s+r.accepted,0), sold=rows.reduce((s,r)=>s+r.sold,0);
+  return {rows,rev,accepted,sold,left:rem,perLead:leads?rev/leads:0,coverage:leads?accepted/leads:0,eplAvg:accepted?rev/accepted:0};
+}
+function sortedPool(partners,cfg){ return buildPool(partners,cfg).sort((a,b)=>b.epl-a.epl); }
+function forecast(partners,cfg,over={}){
+  const c={...cfg,...over};
+  const pool=sortedPool(partners,c);
+  const cut=pool.slice(0,c.n);
+  return {eligible:pool.length,...runFlow(cut,c.leads,c.pen,c.accMul||1,c.eplMul||1,!!c.reach)};
+}
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function gauss(r){ let u=0,v=0; while(u===0)u=r(); while(v===0)v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function monteCarlo(rows,leads,sims,seed){
+  const r=mulberry32(seed), out=[];
+  for(let s=0;s<sims;s++){
+    let rem=leads, rev=0;
+    for(const p of rows){
+      const nA=Math.exp(p.cvA*gauss(r)-p.cvA*p.cvA/2), nE=Math.exp(p.cvE*gauss(r)-p.cvE*p.cvE/2);
+      const acc=Math.min(1,p.accEff*nA);
+      let a=rem*acc+Math.sqrt(Math.max(0,rem*acc*(1-acc)))*gauss(r); a=Math.max(0,Math.min(rem,a));
+      rev+=a*p.eplEff*nE; rem-=a;
+    }
+    out.push(rev);
+  }
+  out.sort((a,b)=>a-b);
+  const q=f=>out[Math.min(out.length-1,Math.floor(f*out.length))];
+  return {p10:q(.1),p50:q(.5),p90:q(.9),samples:out};
+}
+function hhi(rows,total){ return rows.reduce((s,r)=>s+Math.pow(total?r.rev/total:0,2),0)*10000; }
+/*ENDCALC*/
+
+/* ------------------------------------------------ tipos de lead (hipótesis) */
+const TYPES = {
+  general:{label:'Mix general (media de 2026)',kA:1,kE:1,desc:'Sin ajuste: usa la aceptación y el EPL observados en 2026.'},
+  hq:{label:'Préstamo personal HQ (ingresos estables, sin ASNEF)',kA:1.35,kE:1.15,desc:'Hipótesis: los lenders aceptan más leads con ingresos estables y pagan algo más por ellos.'},
+  fresh:{label:'Leads frescos en tiempo real (menos de 1 hora)',kA:1.25,kE:1.10,desc:'Hipótesis: un lead recién generado tiene más intención y mejor contactabilidad.'},
+  micro:{label:'Microcrédito y clientes recurrentes',kA:1.0,kE:0.85,desc:'Hipótesis: aceptación parecida al mix, pero con menor pago por lead.'},
+  asnef:{label:'Leads con ASNEF o baja calidad',kA:0.45,kE:0.70,desc:'Hipótesis: la mayoría de lenders rechaza estos leads y los que aceptan pagan menos.'},
+  old:{label:'Leads antiguos (30 a 90 días)',kA:0.35,kE:0.60,desc:'Hipótesis: baja contactabilidad y menor valor; es la base típica de reactivación.'}
+};
+
+/* ------------------------------------------------ estado */
+const S = {type:'general',company:'',leads:PARAMS.leads,month:'both',n:PARAMS.offers,minAcc:PARAMS.min_accepted,kA:PARAMS.acceptance_multiplier,kE:PARAMS.epl_multiplier,pen:PARAMS.position_penalty*100,reach:false,ovr:{},excl:new Set(),open:new Set()};
+const cfgOf = () => ({months:S.month==='both'?PARAMS.aggregation_months:[S.month],reach:S.reach,minAcc:S.minAcc,ovr:S.ovr,excl:S.excl,kA:S.kA,kE:S.kE,leads:S.leads,n:S.n,pen:S.pen/100});
+let LAST=null;
+
+/* ------------------------------------------------ gráficos */
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const charts = {};
+const pal = () => [1,2,3,4,5,6,7,8].map(i=>css('--c'+i));
+function mk(id,cfg){
+  const el=document.getElementById(id); if(!el||typeof Chart==='undefined') return;
+  if(charts[id]) charts[id].destroy();
+  cfg.options=cfg.options||{}; cfg.options.responsive=true; cfg.options.maintainAspectRatio=false; cfg.options.animation=false;
+  charts[id]=new Chart(el,cfg);
+}
+function chartDefaults(){
+  if(typeof Chart==='undefined') return;
+  Chart.defaults.color=css('--text2'); Chart.defaults.borderColor=css('--grid');
+  Chart.defaults.font.family=css('--f-sans'); Chart.defaults.font.size=11;
+  Chart.defaults.plugins.legend.labels.boxWidth=10; Chart.defaults.plugins.legend.labels.boxHeight=10;
+}
+const gridY = () => ({grid:{color:css('--grid')},border:{display:false}});
+const gridX = () => ({grid:{display:false}});
+
+/* ------------------------------------------------ render */
+function render(){
+  const cfg=cfgOf();
+  const F=forecast(D.partners,cfg); LAST=F; const rows=F.rows;
+  chartDefaults(); const P=pal();
+  const company=S.company.trim()||'tu empresa';
+  const mc=monteCarlo(rows,S.leads,PARAMS.monte_carlo.sims,PARAMS.monte_carlo.seed);
+  const FR=forecast(D.partners,{...cfg,reach:true}), FU=forecast(D.partners,{...cfg,reach:false});
+
+  /* KPIs */
+  const top3=rows.slice(0,3).reduce((s,r)=>s+r.rev,0)/(F.rev||1);
+  const soldKnown=rows.some(r=>r.hasSold);
+  $('#kpis').innerHTML=
+    `<div class="scard main"><div class="l">Revenue previsto/mes ${S.reach?'(alcance real)':'(techo, alcance total)'}</div><div class="v">${eur(F.rev)}</div><div class="s">Rango P10–P90: ${eur(mc.p10)} – ${eur(mc.p90)} · ${S.reach?'Techo':'Calibrado al alcance real'}: ${eur(S.reach?FU.rev:FR.rev)}</div></div>`+
+    `<div class="scard"><div class="l">Revenue por lead</div><div class="v">${eur2(F.perLead)}</div><div class="s">${int(S.leads)} leads de ${esc(company)}</div></div>`+
+    `<div class="scard"><div class="l">Leads colocados</div><div class="v">${pct1(F.coverage)}</div><div class="s">${int(F.accepted)} aceptados · ${int(F.left)} sin colocar</div></div>`+
+    `<div class="scard"><div class="l">EPL medio</div><div class="v">${eur2(F.eplAvg)}</div><div class="s">revenue ÷ aceptados</div></div>`+
+    `<div class="scard"><div class="l">Ventas previstas</div><div class="v">${soldKnown?int(F.sold):'n/d'}</div><div class="s">${soldKnown?'solo partners con ventas registradas':'sin ventas registradas'}</div></div>`+
+    `<div class="scard"><div class="l">Partners en el pingtree</div><div class="v">${rows.length} / ${F.eligible}</div><div class="s">Top 3 = ${pct1(top3)} del revenue</div></div>`;
+  $('#pt-title').textContent=`Pingtree de ${company} · ${rows.length} ofertas`;
+  $('#type-note').innerHTML=`<b>${S.type==='general'?'Sin ajuste de calidad.':'Hipótesis de calidad.'}</b> ${esc((TYPES[S.type]||{desc:'Ajustes personalizados de aceptación y EPL.'}).desc)} Aceptación ×${N2.format(S.kA)} · EPL ×${N2.format(S.kE)}.`;
+
+  /* excluidos */
+  $('#excl').innerHTML=[...S.excl].map(n=>`<span class="chip" data-restore="${esc(n)}" title="Volver a incluir">${esc(n)} ✕</span>`).join('');
+
+  /* tabla */
+  const maxRev=Math.max(...rows.map(r=>r.rev),1);
+  let h=`<thead><tr><th class="tl">#</th><th class="tl">Partner</th><th>Leads recibidos</th><th>Acc %</th><th>Aceptados</th><th>Ventas</th><th>CR %</th><th>EPL</th><th>Revenue</th><th>% rev</th><th>Restan</th><th>EPL ed.</th><th>Acc % ed.</th><th></th></tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const small=r.A<200;
+    const cr=r.hasSold?r.soldPerAcc:null;
+    const crCls=cr==null?'':cr>=.3?'good':cr>=.1?'mid':'bad';
+    h+=`<tr class="row"><td class="tl"><span class="pos">${r.pos}</span></td>
+      <td class="tl name">${esc(r.name)}${small?'<span class="tag">muestra pequeña</span>':''}${r.hasOvr?'<span class="tag">editado</span>':''}</td>
+      <td>${int(r.in)}</td><td>${pct2(r.accEff)}</td><td>${int(r.accepted)}</td><td>${r.hasSold?int(r.sold):'n/d'}</td><td class="${crCls}">${cr==null?'—':pct1(cr)}</td>
+      <td>${eur2(r.eplEff)}</td><td>${eur(r.rev)}</td><td>${pct1(F.rev?r.rev/F.rev:0)}</td>
+      <td><span class="bar" title="${int(r.rem)} leads restantes"><i style="width:${S.leads?Math.max(0,r.rem/S.leads*100):0}%"></i></span></td>
+      <td><input class="edit" data-f="epl" data-n="${esc(r.name)}" value="" placeholder="${N2.format(r.eplEff)}" aria-label="EPL de ${esc(r.name)}"></td>
+      <td><input class="edit" data-f="acc" data-n="${esc(r.name)}" value="" placeholder="${N2.format(r.accEff*100)}" aria-label="Aceptación de ${esc(r.name)}"></td>
+      <td><button class="x" data-excl="${esc(r.name)}" title="Quitar del pingtree" aria-label="Quitar ${esc(r.name)}">✕</button></td></tr>`;
+  });
+  h+=`<tr><td colspan="2" class="tl name">Total</td><td>${int(S.leads)}</td><td>${pct2(F.coverage)}</td><td>${int(F.accepted)}</td><td>${soldKnown?int(F.sold):'n/d'}</td><td></td><td>${eur2(F.eplAvg)}</td><td>${eur(F.rev)}</td><td>100 %</td><td colspan="4"></td></tr></tbody>`;
+  $('#pt-table').innerHTML=h;
+
+  /* gráficos */
+  const labels=rows.map(r=>r.pos+'. '+short(r.name,13));
+  const titleFull=items=>rows[items[0].dataIndex]?rows[items[0].dataIndex].name:'';
+  mk('chFlow',{type:'bar',data:{labels,datasets:[
+    {type:'bar',label:'Aceptados',data:rows.map(r=>r.accepted),backgroundColor:P[0],borderRadius:3,yAxisID:'y'},
+    {type:'line',label:'Leads sin colocar',data:rows.map(r=>r.rem),borderColor:P[2],backgroundColor:P[2],pointRadius:2,tension:.25,yAxisID:'y1'}]},
+    options:{plugins:{tooltip:{callbacks:{title:titleFull,label:c=>c.dataset.label+': '+int(c.parsed.y)}}},scales:{x:{...gridX(),ticks:{maxRotation:60,minRotation:45}},y:{...gridY(),title:{display:true,text:'Aceptados'}},y1:{position:'right',grid:{display:false},title:{display:true,text:'Sin colocar'}}}}});
+  $('#revbox').style.height=Math.max(300,rows.length*22+50)+'px';
+  mk('chRev',{type:'bar',data:{labels:rows.map(r=>r.pos+'. '+short(r.name,22)),datasets:[{label:'Revenue',data:rows.map(r=>r.rev),backgroundColor:P[0],borderRadius:3}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{title:titleFull,label:c=>eur(c.parsed.x)}}},scales:{x:{...gridY(),ticks:{callback:v=>int(v)+' €'}},y:{...gridX(),ticks:{autoSkip:false}}}}});
+  let cum=0; const cumP=rows.map(r=>{cum+=r.rev; return F.rev?cum/F.rev:0;});
+  mk('chCum',{type:'line',data:{labels:rows.map(r=>r.pos),datasets:[{label:'% acumulado',data:cumP.map(v=>v*100),borderColor:P[0],backgroundColor:P[0]+'33',fill:true,tension:.2,pointRadius:3},{label:'80 %',data:rows.map(()=>80),borderColor:P[2],borderDash:[5,4],pointRadius:0}]},
+    options:{plugins:{tooltip:{callbacks:{title:items=>'Hasta la posición '+items[0].label,label:c=>N1.format(c.parsed.y)+' %'}}},scales:{x:{...gridX(),title:{display:true,text:'Posición en el pingtree'}},y:{...gridY(),min:0,max:100,ticks:{callback:v=>v+' %'}}}}});
+  const k80=cumP.findIndex(v=>v>=.8)+1;
+  $('#in-cum').textContent=rows.length?`Las ${k80||rows.length} primeras ofertas generan el 80 % del revenue; las ${Math.max(0,rows.length-(k80||rows.length))} restantes aportan el ${pct1(1-(cumP[(k80||rows.length)-1]||1))}.`:'';
+  const topN=rows.slice(0,8), rest=rows.slice(8).reduce((s,r)=>s+r.rev,0);
+  mk('chShare',{type:'doughnut',data:{labels:[...topN.map(r=>short(r.name,20)),...(rest>0?['Resto']:[])],datasets:[{data:[...topN.map(r=>r.rev),...(rest>0?[rest]:[])],backgroundColor:[...P,...(rest>0?[css('--text3')]:[])].slice(0,topN.length+(rest>0?1:0)),borderColor:css('--bg2'),borderWidth:2}]},
+    options:{cutout:'58%',plugins:{legend:{position:'right'},tooltip:{callbacks:{label:c=>c.label+': '+eur(c.parsed)+' ('+pct1(F.rev?c.parsed/F.rev:0)+')'}}}}});
+  const H=hhi(rows,F.rev);
+  $('#kv-share').innerHTML=`<span>Índice HHI <b>${int(H)}</b> (${H>2500?'concentrada':H>1500?'moderada':'diversificada'})</span><span>Top 1 <b>${pct1(rows[0]?rows[0].rev/F.rev:0)}</b></span><span>Top 3 <b>${pct1(top3)}</b></span><span>Partners con menos del 1 % <b>${rows.filter(r=>r.rev/F.rev<.01).length}</b></span>`;
+  const maxR=Math.max(...rows.map(r=>r.rev),1);
+  mk('chBub',{type:'bubble',data:{datasets:[{label:'Partners',data:rows.map(r=>({x:r.accEff*100,y:r.eplEff,r:4+22*Math.sqrt(r.rev/maxR),n:r.name,rev:r.rev})),backgroundColor:P[0]+'88',borderColor:P[0]}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i[0].raw.n,label:c=>['Aceptación '+N2.format(c.raw.x)+' %','EPL '+eur2(c.raw.y),'Revenue '+eur(c.raw.rev)]}}},scales:{x:{...gridY(),type:'logarithmic',title:{display:true,text:'Aceptación (%) · escala logarítmica'},ticks:{callback:v=>[0.1,0.5,1,2,5,10,20,50].includes(v)?v+' %':''}},y:{...gridY(),title:{display:true,text:'EPL (€)'},beginAtZero:true}}}});
+  /* rendimientos decrecientes */
+  const pool=sortedPool(D.partners,cfg), maxN=Math.min(30,pool.length);
+  const rv=[]; for(let k=1;k<=maxN;k++) rv.push(runFlow(pool.slice(0,k),S.leads,cfg.pen).rev);
+  const marg=rv.map((v,i)=>i?v-rv[i-1]:v);
+  mk('chMarg',{type:'bar',data:{labels:rv.map((_,i)=>i+1),datasets:[
+    {type:'line',label:'Revenue total',data:rv,borderColor:P[0],backgroundColor:P[0],pointRadius:rv.map((_,i)=>i+1===rows.length?6:2),pointBackgroundColor:rv.map((_,i)=>i+1===rows.length?P[2]:P[0]),yAxisID:'y',tension:.2},
+    {type:'bar',label:'Aporte de la oferta nueva',data:marg,backgroundColor:marg.map((_,i)=>i+1===rows.length?P[2]:P[0]+'66'),yAxisID:'y1',borderRadius:2}]},
+    options:{plugins:{tooltip:{callbacks:{title:i=>'Con '+i[0].label+' ofertas',label:c=>c.dataset.label+': '+eur(c.parsed.y)}}},scales:{x:{...gridX(),title:{display:true,text:'Ofertas en el pingtree'}},y:{...gridY(),ticks:{callback:v=>int(v/1000)+' k'}},y1:{position:'right',grid:{display:false},ticks:{callback:v=>int(v)+' €'}}}}});
+  const gain=rv.length>1?rv[rows.length-1]-rv[Math.max(0,rows.length-6)]:0;
+  $('#in-marg').textContent=rows.length?`Con ${rows.length} ofertas se llega a ${eur(rv[rows.length-1]||0)}. Las últimas 5 ofertas añaden ${eur(gain)} (${pct1(F.rev?gain/F.rev:0)}).`:'';
+  /* sensibilidad */
+  const base=F.rev||1, d=(o)=>{ const x=forecast(D.partners,cfg,o).rev; return (x-F.rev)/base*100; };
+  const topName=rows[0]?rows[0].name:'';
+  const ex3=new Set([...S.excl,...rows.slice(0,3).map(r=>r.name)]), ex1=new Set([...S.excl,topName]);
+  const sens=[['Aceptación +10 %',d({accMul:1.1})],['Aceptación −10 %',d({accMul:.9})],['EPL +10 %',d({eplMul:1.1})],['EPL −10 %',d({eplMul:.9})],['Penalización por posición 30 %',d({pen:.3})],['Sin el partner nº 1',d({excl:ex1})],['Sin los 3 primeros',d({excl:ex3})],['10 ofertas en vez de '+S.n,d({n:10})],['30 ofertas',d({n:30})]].sort((a,b)=>b[1]-a[1]);
+  mk('chSens',{type:'bar',data:{labels:sens.map(s=>s[0]),datasets:[{data:sens.map(s=>s[1]),backgroundColor:sens.map(s=>s[1]>=0?P[1]:P[6]),borderRadius:3}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.parsed.x>=0?'+':'')+N1.format(c.parsed.x)+' %'}}},scales:{x:{...gridY(),ticks:{callback:v=>v+' %'}},y:{...gridX()}}}});
+  /* orden */
+  const cut=pool.slice(0,S.n), by=(f,dir)=>runFlow([...cut].sort((a,b)=>dir*(f(b)-f(a))),S.leads,cfg.pen).rev;
+  const rnd=mulberry32(7); let acc=0; for(let t=0;t<200;t++){ const a=[...cut]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } acc+=runFlow(a,S.leads,cfg.pen).rev; }
+  const ords=[['EPL ↓ (tu pingtree)',by(p=>p.epl,1)],['Aceptación ↓',by(p=>p.acc,1)],['Revenue histórico ↓',by(p=>p.V,1)],['Aleatorio (media 200)',acc/200],['EPL ↑ (al revés)',by(p=>p.epl,-1)]];
+  mk('chOrd',{type:'bar',data:{labels:ords.map(o=>o[0]),datasets:[{data:ords.map(o=>o[1]),backgroundColor:ords.map((o,i)=>i===0?P[0]:P[7]+'99'),borderRadius:3}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>eur(c.parsed.y)}}},scales:{x:{...gridX()},y:{...gridY(),ticks:{callback:v=>int(v/1000)+' k'},beginAtZero:true}}}});
+  const worst=Math.min(...ords.map(o=>o[1])), best=ords[0][1];
+  $('#in-ord').textContent=`Ordenar por EPL vale ${eur(best)}; el peor orden probado deja ${eur(worst)}. Diferencia: ${pct1(best?(best-worst)/best:0)}.`;
+  /* Monte Carlo */
+  const smp=mc.samples, lo=smp[0], hi=smp[smp.length-1], bins=30, w=(hi-lo)/bins||1, hist=new Array(bins).fill(0);
+  smp.forEach(v=>{ hist[Math.min(bins-1,Math.floor((v-lo)/w))]++; });
+  const bi=v=>Math.min(bins-1,Math.floor((v-lo)/w));
+  mk('chMC',{type:'bar',data:{labels:hist.map((_,i)=>int((lo+w*(i+.5))/1000)+' k'),datasets:[{data:hist,backgroundColor:hist.map((_,i)=>i===bi(mc.p50)?P[2]:(i<bi(mc.p10)||i>bi(mc.p90))?P[7]+'88':P[0]),borderRadius:2,barPercentage:1,categoryPercentage:.95}]},
+    options:{plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>'≈ '+i[0].label+' €',label:c=>c.parsed.y+' simulaciones'}}},scales:{x:{...gridX(),ticks:{maxTicksLimit:8}},y:{...gridY(),display:false}}}});
+  $('#kv-mc').innerHTML=`<span>P10 <b>${eur(mc.p10)}</b></span><span>Mediana <b>${eur(mc.p50)}</b></span><span>P90 <b>${eur(mc.p90)}</b></span><span>Previsión determinista <b>${eur(F.rev)}</b></span>`;
+  /* tendencia */
+  const months=D.months, tp=rows.slice(0,5).map(r=>D.partners.find(p=>p.name===r.name));
+  mk('chTrend',{type:'line',data:{labels:months.map(mlabel),datasets:tp.map((p,i)=>({label:short(p.name,22),data:months.map(m=>{const x=p.m[m]; return x&&x[1]>0&&x[3]>0?x[3]/x[1]:null;}),borderColor:P[i],backgroundColor:P[i],tension:.25,pointRadius:2,spanGaps:true}))},
+    options:{plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+eur2(c.parsed.y)}}},scales:{x:{...gridX(),ticks:{maxRotation:60,minRotation:45}},y:{...gridY(),ticks:{callback:v=>v+' €'},beginAtZero:true}}}});
+  /* escenarios */
+  const sc=Object.entries(TYPES).map(([k,t])=>{ const f=forecast(D.partners,{...cfg,kA:t.kA,kE:t.kE}); return {k,label:t.label,kA:t.kA,kE:t.kE,rev:f.rev,perLead:f.perLead,cov:f.coverage}; });
+  const b0=sc.find(s=>s.k==='general').rev||1;
+  mk('chTypes',{type:'bar',data:{labels:sc.map(s=>short(s.label.replace(/ \(.*\)/,''),26)),datasets:[{data:sc.map(s=>s.rev),backgroundColor:sc.map(s=>s.k===S.type?P[0]:P[7]+'99'),borderRadius:3}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>eur(c.parsed.x)}}},scales:{x:{...gridY(),ticks:{callback:v=>int(v/1000)+' k'}},y:{...gridX()}}}});
+  $('#sc-table').innerHTML=`<thead><tr><th class="tl">Tipo de lead</th><th>Aceptación</th><th>EPL</th><th>Revenue</th><th>€ / lead</th><th>vs mix</th></tr></thead><tbody>`+
+    sc.map(s=>`<tr class="${s.k===S.type?'':''}"><td class="tl name">${esc(s.label)}${s.k===S.type?'<span class="tag">elegido</span>':''}</td><td>×${N2.format(s.kA)}</td><td>×${N2.format(s.kE)}</td><td>${eur(s.rev)}</td><td>${eur2(s.perLead)}</td><td class="${s.rev>=b0?'good':'bad'}">${(s.rev>=b0?'+':'')+N1.format((s.rev/b0-1)*100)} %</td></tr>`).join('')+`</tbody>`;
+  $('#in-flow').textContent=rows.length?`El primer partner recibe todos los leads y acepta ${pct1(rows[0].accEff)}. Tras el último quedan ${int(F.left)} leads (${pct1(S.leads?F.left/S.leads:0)}) sin colocar: son la bolsa a repartir con más ofertas o con otro canal.`:'No hay partners elegibles con estos filtros.';
+}
+
+/* ------------------------------------------------ eventos */
+function summaryText(){
+  const F=LAST, c=S.company.trim()||'Cliente';
+  return `Pingtree Forecast · ${c}\n${int(S.leads)} leads/mes · ${S.type==='general'?'mix general':TYPES[S.type]?TYPES[S.type].label:'personalizado'}\nRevenue previsto: ${eur(F.rev)} (${eur2(F.perLead)} por lead)\nPartners: ${F.rows.length} · leads colocados ${pct1(F.coverage)}\n`+F.rows.map(r=>`${r.pos}. ${r.name} · EPL ${eur2(r.eplEff)} · acc ${pct2(r.accEff)} · ${eur(r.rev)}`).join('\n');
+}
+function setRange(id,out,fmt,key,scale=1){ const el=$('#'+id); el.addEventListener('input',()=>{ S[key]=+el.value; $('#'+out).textContent=fmt(+el.value); if(key==='kA'||key==='kE'){ S.type='custom'; $('#f-type').value='custom'; } render(); }); }
+function init(){
+  $('#f-type').innerHTML=Object.entries(TYPES).map(([k,t])=>`<option value="${k}">${esc(t.label)}</option>`).join('')+'<option value="custom">Personalizado</option>';
+  $('#f-company').addEventListener('input',e=>{ S.company=e.target.value; render(); });
+  $('#f-leads').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(v>0){ S.leads=v; render(); } });
+  $('#f-type').addEventListener('change',e=>{ const t=TYPES[e.target.value]; S.type=e.target.value; if(t){ S.kA=t.kA; S.kE=t.kE; $('#f-ka').value=t.kA; $('#f-ke').value=t.kE; $('#o-ka').textContent='×'+N2.format(t.kA); $('#o-ke').textContent='×'+N2.format(t.kE); } render(); });
+  $('#f-min').addEventListener('change',e=>{ S.minAcc=+e.target.value; render(); });
+  $('#f-reach').addEventListener('change',e=>{ S.reach=e.target.value==='1'; render(); });
+  setRange('f-n','o-n',v=>String(v),'n'); setRange('f-ka','o-ka',v=>'×'+N2.format(v),'kA'); setRange('f-ke','o-ke',v=>'×'+N2.format(v),'kE'); setRange('f-pen','o-pen',v=>v+' %','pen');
+  $('#pt-table').addEventListener('click',e=>{
+    const x=e.target.closest('[data-excl]'); if(x){ S.excl.add(x.dataset.excl); render(); }
+  });
+  $('#pt-table').addEventListener('change',e=>{
+    const t=e.target; if(!t.dataset.f) return; const n=t.dataset.n, raw=t.value.trim().replace(',','.');
+    S.ovr[n]=S.ovr[n]||{};
+    if(raw===''||isNaN(+raw)){ delete S.ovr[n][t.dataset.f]; }
+    else S.ovr[n][t.dataset.f]=t.dataset.f==='acc'?Math.min(1,Math.max(0,+raw/100)):Math.max(0,+raw);
+    render();
+  });
+  $('#excl').addEventListener('click',e=>{ const c=e.target.closest('[data-restore]'); if(c){ S.excl.delete(c.dataset.restore); render(); } });
+  $('#b-reset').onclick=()=>{ S.ovr={}; S.excl.clear(); render(); };
+  $('#b-copy').onclick=async()=>{ const t=summaryText(), b=$('#b-copy'); try{ await navigator.clipboard.writeText(t); b.textContent='Copiado'; }catch(err){ b.textContent='Selecciona y copia desde la tabla'; } setTimeout(()=>b.textContent='Copiar resumen',1800); };
+  if(window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>render());
+  new MutationObserver(()=>render()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  render();
+}
+init();
+</script>

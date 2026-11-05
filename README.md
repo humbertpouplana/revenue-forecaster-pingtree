@@ -1,12 +1,84 @@
-# revenue-forecaster-pingtree
+# Revenue Forecaster - Pingtree Financiero
 
-Revenue Forecaster - Pingtree Financiero: forecast of pingtree revenue per lead from anonymized partner acceptance/EPL data, with optimal ordering and Monte Carlo ranges.
+Forecast the revenue of a financial lead-generation **pingtree** (an ordered list of buyers offered each lead in turn until one accepts), choose the buyer order, and quantify uncertainty. Model version **0.2.0**.
 
-## Contents
-- `prototype/index.html`: self-contained HTML prototype (open in a browser).
-- `paper/`: LaTeX paper (`paper.tex`, `paper.pdf`, `fig/`). Build: `cd paper && pdflatex paper.tex && pdflatex paper.tex`.
+## The problem
+A seller with a pool of leads needs to know how much revenue the pool will generate and in which order the buyers should be called. The order matters because every lead accepted early is no longer available to later buyers.
 
-## Status
-Prototype. Next step: port to the Python/Streamlit suite.
+## Results (anonymised data, January-February 2026 means)
+| quantity | value |
+|---|---|
+| Full-reach flow, 100,000 leads, 20 offers (a **ceiling**) | **115,371 EUR** per month (Monte Carlo P10-P90: 102,231 - 129,196; 40 eligible buyers) |
+| Reach-adjusted flow (reconciles with realised revenue) | **16,300 EUR** (P10-P90: 13,632 - 19,339); the ceiling is 7.1x higher |
+| In-sample ratio model / realised revenue (month by month) | 93% on average |
+| Walk-forward backtest (12 months, train on the previous 2) | MAPE **17.6%**, bias +6.0% (naive run rate: 18.8%) |
+| Full-reach flow versus realised revenue | overstates by a median factor of 5.1 |
+| EPL-descending order versus random / acceptance-descending / EPL-ascending | 115,371 vs 106,125 / 98,943 / 97,842 EUR |
 
-Author: Humbert Pou Plana
+**Read this first:** the headline 115,371 EUR is what the pingtree would earn *if every buyer were offered every leftover lead*. Real buyers are only queried for a fraction of the leads (eligibility, caps, product fit). The reach-adjusted figure is the one that reproduces realised revenue; use the ceiling only for what-if comparisons.
+
+### Walk-forward backtest (EUR per month)
+| month | realised | reach-adjusted model | error | naive run rate |
+|---|---|---|---|---|
+| 2025-03 | 527,489 | 351,982 | -33.3% | 368,911 |
+| 2025-04 | 458,637 | 429,698 | -6.3% | 454,992 |
+| 2025-05 | 478,520 | 505,009 | +5.5% | 536,701 |
+| 2025-06 | 457,528 | 406,214 | -11.2% | 428,446 |
+| 2025-07 | 502,494 | 491,269 | -2.2% | 518,282 |
+| 2025-08 | 496,929 | 639,628 | +28.7% | 672,000 |
+| 2025-09 | 480,207 | 557,136 | +16.0% | 579,344 |
+| 2025-10 | 396,224 | 567,792 | +43.3% | 587,275 |
+| 2025-11 | 324,293 | 430,259 | +32.7% | 443,210 |
+| 2025-12 | 339,788 | 390,848 | +15.0% | 401,399 |
+| 2026-01 | 349,751 | 296,710 | -15.2% | 304,507 |
+| 2026-02 | 105,374 | 103,839 | -1.5% | 106,765 |
+
+Lead volume of the target month is an *input* (as in the tool), so the backtest does not test volume forecasting. The observed buyer order is unknown; the in-sample check approximates it by request volume and the walk-forward uses EPL order.
+
+## Model and assumptions
+- Leads reaching position *i*: `L_i = N * prod_(j<i) (1 - a_j)`; revenue `R = N * sum_i a_i e_i prod_(j<i)(1 - a_j)`. Order by decreasing EPL is optimal (adjacent-swap proof in the paper) when acceptances are independent, offers are free and acceptance does not depend on position.
+- Reach: `q_i = min(1, requests_i / N_ref)` scales `a_i` (`reach=True`).
+- Buyers with fewer than 50 accepted leads or no revenue are excluded; the top 20 by EPL form the tree. Means use `aggregation_months` = 2026-01, 2026-02; the Monte Carlo volatility (coefficient of variation of acceptance and EPL) uses the monthly observations from `volatility_from` = 2025-09.
+- Monte Carlo: 2,000 simulations, log-normal noise with unit mean, binomial normal approximation, fixed seed 20261103.
+
+## Quick start
+```bash
+pip install -e ".[dev]"      # or: pip install -r requirements.txt
+make test                    # 15 tests: headline, closed form, optimality, reconciliation, JS parity
+make all                     # results -> figures -> paper -> prototype
+open prototype/index.html    # interactive demo (anonymised partner ids)
+```
+`make paper` needs a LaTeX distribution (`pdflatex`). `python prototype/build_prototype.py --named` uses `data/private/partner_names.csv` if you have it; never commit that output.
+
+## Layout
+```
+revenue-forecaster-pingtree/
+├── README.md  LICENSE  CHANGELOG.md  Makefile  pyproject.toml  requirements.txt
+├── data/              dataset + data dictionary + params.json (single source of truth for parameters)
+├── src/pingtree_forecaster/    model, results, figures (all logic lives here, not in the HTML)
+├── tests/             unit tests, reconciliation and HTML-prototype parity tests
+├── notebooks/         01_walkthrough.ipynb (executed)
+├── paper/             paper.tex + build_paper.py + paper.pdf; fig/ is generated by `make figures`
+├── prototype/         template.html + build_prototype.py -> index.html (single-file demo)
+└── results/           results.json, generated by `make results`
+```
+
+## Data
+See [`data/DATA_DICTIONARY.md`](data/DATA_DICTIONARY.md). The dataset is anonymised partner-month reporting (42 partners, 14 months). Origin: anonymised data sources. It is for reproducing the results only.
+
+## Known limits
+- Acceptance is measured at the position buyers actually occupied; lower positions may see worse leads (test with the `position_penalty` parameter, ideally with an experiment).
+- Buyer caps and ping costs break the EPL index rule; independence between buyers is assumed (reach adjustment absorbs part of it, not the correlation).
+- Two months of reference data are a thin base: January alone gives 107,246 EUR and February alone 90,022 EUR (full-reach).
+- Small samples: without a minimum accepted-leads filter the forecast explodes to 4,500,000 EUR because buyers with a handful of accepted leads show implausible EPL.
+- The backtest improves only slightly on a naive run rate; the model's value is structural (what-if on order and offers), not extra accuracy.
+- Lead-type adjustments in the prototype are editable hypotheses, not estimated from data.
+
+## Paper
+`paper/paper.pdf` (built from `paper/paper.tex`). All numbers and figures are generated from `results/results.json`.
+
+## Versioning
+`__version__` = 0.2.0 (see [CHANGELOG](CHANGELOG.md)). Results are stamped with the model version.
+
+## Licence
+MIT for code and paper sources; data under `data/` is not licensed for other uses. See [LICENSE](LICENSE).

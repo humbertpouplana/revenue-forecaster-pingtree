@@ -1,0 +1,14 @@
+{
+  "model_version": "0.2.0",
+  "aggregation_months": ["2026-01", "2026-02"],
+  "volatility_from": "2025-09",
+  "min_accepted": 50,
+  "leads": 100000,
+  "offers": 20,
+  "position_penalty": 0.0,
+  "acceptance_multiplier": 1.0,
+  "epl_multiplier": 1.0,
+  "monte_carlo": {"sims": 2000, "seed": 20261103, "cv_floor": 0.03, "cv_cap": 0.8, "cv_default": 0.2},
+  "random_order": {"runs": 2000, "seed": 7},
+  "backtest": {"train_months": 2, "min_accepted": 20, "tolerance_mape": 0.30}
+}
